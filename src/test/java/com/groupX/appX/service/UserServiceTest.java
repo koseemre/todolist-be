@@ -34,7 +34,7 @@ public class UserServiceTest {
 		when(userService.getUsers()).thenReturn(users);
 		int size = userService.getUsers().size();
 		System.out.println(size);
-		assertEquals(size, 2);
+		assertEquals(size, 1);
 
 	}
 
