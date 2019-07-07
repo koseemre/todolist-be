@@ -47,7 +47,8 @@ public class TaskController {
 
 	@GetMapping("/getTasks/{userId}")
 	public List<Task> getTaskById(@RequestParam Long userId, Principal principal) {
-		logger.debug("principal name:" + principal.getName());
+		
+		logger.info("task controller principal name:" + principal.getName());
 		return taskService.findTasksByUserId(userId, principal.getName());
 	}
 
