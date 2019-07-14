@@ -17,3 +17,6 @@ This is a simple web application with the given technologies:
 ### Redux
 
 ### JUnit
+
+note: the authentication development of the application is based on the repository of the given url:
+https://github.com/AgileIntelligence/AgileIntPPMTool
