@@ -3,6 +3,7 @@ package com.groupX.appX.controller;
 import java.security.Principal;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,6 @@ import com.groupX.appX.entity.User;
 import com.groupX.appX.enums.ErrorCode;
 import com.groupX.appX.exception.TaskDetailNotFoundException;
 import com.groupX.appX.exception.TaskNotFoundException;
-import com.groupX.appX.exception.UserNotFoundException;
 import com.groupX.appX.service.TaskDetailService;
 import com.groupX.appX.service.TaskService;
 import com.groupX.appX.service.UserService;
@@ -47,7 +47,7 @@ public class TaskController {
 
 	@GetMapping("/getTasks/{userId}")
 	public List<Task> getTaskById(@RequestParam Long userId, Principal principal) {
-		
+
 		logger.info("task controller principal name:" + principal.getName());
 		return taskService.findTasksByUserId(userId, principal.getName());
 	}
@@ -58,27 +58,28 @@ public class TaskController {
 	}
 
 	@PostMapping("/addTask/{userId}")
-	public Task addTask(@RequestParam Long userId, @RequestBody Task task, Principal principal)
-			throws UserNotFoundException {
+	public Task addTask(@RequestParam Long userId, @RequestBody Task task, Principal principal) {
 
 		logger.debug("principal name:" + principal.getName());
 
-		User user = userService.findById(userId)
-				.orElseThrow(() -> new UserNotFoundException(task, ErrorCode.TASK_NOT_FOUND));
-
-		task.setUser(user);
-		TaskDetail taskDetail = task.getTaskDetail();
-		taskDetail.setTask(task);
-		return taskService.addTask(task, principal.getName());
-
+		Optional<User> user = userService.findById(userId);
+		if (user.isPresent()) {
+			task.setUser(user.get());
+			TaskDetail taskDetail = task.getTaskDetail();
+			taskDetail.setTask(task);
+			return taskService.addTask(task, principal.getName());
+		} else
+			return null;
 	}
 
 	@GetMapping("/tasks/{id}")
-	public Task retrieveTask(@RequestParam Long taskId, Principal principal) throws TaskNotFoundException {
+	public Task retrieveTask(@RequestParam Long taskId, Principal principal) {
 
-		return taskService.findById(taskId, principal.getName())
-				.orElseThrow(() -> new TaskNotFoundException(taskId, ErrorCode.TASK_NOT_FOUND));
-
+		Optional<Task> task = taskService.findById(taskId, principal.getName());
+		if(task.isPresent())
+			return task.get();
+		else
+			return null;
 	}
 
 	@DeleteMapping("/deleteTask/{id}")
@@ -88,17 +89,17 @@ public class TaskController {
 
 	@PutMapping(path = "/updateTask/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	public void updateTask(@RequestBody TaskDetail taskDetail, @RequestParam Long taskId, Principal principal)
-			throws TaskNotFoundException, TaskDetailNotFoundException {
+			 { // add try catch to throw specific exception like TaskNotFoundException, TaskDetailNotFoundException
 
-		Task oldTask = taskService.findById(taskId, principal.getName())
-				.orElseThrow(() -> new TaskNotFoundException(taskId, ErrorCode.TASK_NOT_FOUND));
-
-		taskDetail.setId(oldTask.getTaskDetail().getId());
-		taskDetail.setTask(oldTask);
-		taskDetail.setCreateDate(oldTask.getTaskDetail().getCreateDate());
-		taskDetail.setUpdateDate(new Date());
-		taskDetailService.updateTaskDetail(taskDetail);
-
+		Optional<Task> oldTask = taskService.findById(taskId, principal.getName());
+				//.orElseThrow(() -> new TaskNotFoundException(taskId, ErrorCode.TASK_NOT_FOUND));
+		if(oldTask.isPresent()) {
+			taskDetail.setId(oldTask.get().getTaskDetail().getId());
+			taskDetail.setTask(oldTask.get());
+			taskDetail.setCreateDate(oldTask.get().getTaskDetail().getCreateDate());
+			taskDetail.setUpdateDate(new Date());
+			taskDetailService.updateTaskDetail(taskDetail);
+		}
 	}
 
 }

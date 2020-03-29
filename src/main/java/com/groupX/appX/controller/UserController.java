@@ -3,6 +3,7 @@ package com.groupX.appX.controller;
 import static com.groupX.appX.security.SecurityConstants.TOKEN_PREFIX;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.validation.Valid;
 
@@ -114,11 +115,10 @@ public class UserController {
 	}
 
 	@GetMapping("/users/{id}")
-	public User retrieveUser(@RequestParam Long userId) throws UserNotFoundException {
+	public User retrieveUser(@RequestParam Long userId) {
 
-		return userService.findById(userId)
-				.orElseThrow(() -> new UserNotFoundException(userId, ErrorCode.USER_NOT_FOUND));
-
+		Optional<User> user = userService.findById(userId);//.orElseThrow(() -> new UserNotFoundException(userId, ErrorCode.USER_NOT_FOUND));
+		return user.isPresent()?user.get():null;
 	}
 
 	@DeleteMapping("/users/{id}")
@@ -129,9 +129,9 @@ public class UserController {
 	@PutMapping("/users/{id}")
 	public void updateUser(@Valid @RequestBody User userDetails) {
 
-		User user = userService.findById(userDetails.getId())
-				.orElseThrow(() -> new UserNotFoundException(userDetails.getId(), ErrorCode.USER_NOT_FOUND));
-		if (user.getUsername().equals(userDetails.getUsername()))
+		Optional<User> user = userService.findById(userDetails.getId());
+				//.orElseThrow(() -> new UserNotFoundException(userDetails.getId(), ErrorCode.USER_NOT_FOUND));
+		if (user.isPresent() && user.get().getUsername().equals(userDetails.getUsername()))
 			userService.addUser(userDetails);
 	}
 
