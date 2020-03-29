@@ -3,9 +3,11 @@ package com.groupX.appX.controller;
 import static com.groupX.appX.security.SecurityConstants.TOKEN_PREFIX;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.validation.Valid;
 
+import com.groupX.appX.validator.LoginRequestValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,14 +54,23 @@ public class UserController {
 	private AuthenticationManager authenticationManager;
 
 	@Autowired
+	private JwtTokenProvider tokenProvider;
+
+	@Autowired
 	private UserValidator userValidator;
 
 	@Autowired
-	private JwtTokenProvider tokenProvider;
+	private LoginRequestValidator loginRequestValidator;
+
 
 	@PostMapping("/login")
 	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult result) {
-		ResponseEntity<?> errorMap = mapValidationErrorService.MapValidationService(result);
+
+		// username ve
+		loginRequestValidator.validate(loginRequest, result);
+
+		//mapValidationErrorService error içeren result ı ResponseEntity ye çevirir
+		ResponseEntity<?> errorMap = mapValidationErrorService.mapValidationService(result);
 		if (errorMap != null)
 			return errorMap;
 
@@ -75,18 +86,18 @@ public class UserController {
 
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 		String jwt = TOKEN_PREFIX + tokenProvider.generateToken(authentication);
-		
+
 		logger.info("login returning");
 		return ResponseEntity.ok(new JWTLoginSucessReponse(true, jwt));
 	}
 
 	@PostMapping("/register")
 	public ResponseEntity<?> registerUser(@Valid @RequestBody User user, BindingResult result) {
-		// Validate passwords match
+
 		// hata varsa result(Errors errors) içine ekle
 		userValidator.validate(user, result);
 		// hataları map içine atar
-		ResponseEntity<?> errorMap = mapValidationErrorService.MapValidationService(result);
+		ResponseEntity<?> errorMap = mapValidationErrorService.mapValidationService(result);
 		// map boş değilse hata map ine dön
 		if (errorMap != null)
 			return errorMap;
@@ -104,11 +115,10 @@ public class UserController {
 	}
 
 	@GetMapping("/users/{id}")
-	public User retrieveUser(@RequestParam Long userId) throws UserNotFoundException {
+	public User retrieveUser(@RequestParam Long userId) {
 
-		return userService.findById(userId)
-				.orElseThrow(() -> new UserNotFoundException(userId, ErrorCode.USER_NOT_FOUND));
-
+		Optional<User> user = userService.findById(userId);//.orElseThrow(() -> new UserNotFoundException(userId, ErrorCode.USER_NOT_FOUND));
+		return user.isPresent()?user.get():null;
 	}
 
 	@DeleteMapping("/users/{id}")
@@ -119,10 +129,10 @@ public class UserController {
 	@PutMapping("/users/{id}")
 	public void updateUser(@Valid @RequestBody User userDetails) {
 
-		User user = userService.findById(userDetails.getId())
-				.orElseThrow(() -> new UserNotFoundException(userDetails.getId(), ErrorCode.USER_NOT_FOUND));
-		userService.addUser(userDetails);
-
+		Optional<User> user = userService.findById(userDetails.getId());
+				//.orElseThrow(() -> new UserNotFoundException(userDetails.getId(), ErrorCode.USER_NOT_FOUND));
+		if (user.isPresent() && user.get().getUsername().equals(userDetails.getUsername()))
+			userService.addUser(userDetails);
 	}
 
 }

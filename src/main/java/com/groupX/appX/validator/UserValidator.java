@@ -32,9 +32,7 @@ public class UserValidator implements Validator {
 
         }
 
-        //confirmPassword
-
-
+        //or confirmPassword
 
     }
 }
